@@ -1,0 +1,1454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#FFDE69">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Astro Pulse</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        .neubrutalism {
+            border: 3px solid black;
+            box-shadow: 3px 3px 0px black;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .neubrutalism:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 7px 7px 0px black;
+        }
+        body {
+            background-color: #FFDE69;
+            font-family: 'Dela Gothic One', cursive;
+        }
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+            .neubrutalism {
+                border: 2px solid black;
+                box-shadow: 2px 2px 0px black;
+            }
+            .neubrutalism:hover {
+                transform: translate(-1px, -1px);
+                box-shadow: 3px 3px 0px black;
+            }
+
+        /* Chatbot Styles */
+        .chat-widget {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            max-width: 350px;
+            width: 100%;
+            z-index: 1000;
+        }
+
+        .chat-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #FF858D;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1001;
+        }
+
+        .chat-box {
+            background: white;
+            border: 3px solid black;
+            box-shadow: 5px 5px 0px black;
+            border-radius: 10px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            max-height: 500px;
+        }
+
+        .chat-messages {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 15px;
+            max-height: 400px;
+        }
+
+        .chat-input {
+            display: flex;
+            padding: 10px;
+            border-top: 2px solid black;
+            background: #FFDE69;
+        }
+        .card {
+            width: 120px;
+            height: 168px; /* 3:4.2 ratio */
+            margin: 10px;
+            transition: transform 0.3s ease;
+            cursor: pointer;
+        }
+        .symbol-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+        .symbol-card {
+            background: white;
+            padding: 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        #imageCanvas {
+            width: 100%;
+            height: auto;
+        }
+        .loading-overlay {
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(5px);
+        }
+        .rune-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .rune-card {
+            background: white;
+            padding: 1rem;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            aspect-ratio: 1;
+        }
+        
+        .number-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+        
+        .number-cell {
+            background: white;
+            padding: 1.5rem;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            aspect-ratio: 1;
+        }
+        .rune-symbol {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .runes-data {
+            display: none;
+        }
+        @keyframes drawIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8) rotate(-10deg);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) rotate(0deg);
+            }
+        }
+        .rune-card.drawn {
+            animation: drawIn 0.5s ease-out forwards;
+        }
+        .palm-marker {
+            position: absolute;
+            background: rgba(255,0,0,0.3);
+            border: 2px solid red;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .tab-button {
+            border: 3px solid black;
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+        @media (max-width: 480px) {
+            .tab-button {
+                padding: 6px 12px;
+                font-size: 12px;
+                border-width: 2px;
+            }
+        }
+
+        .tab-button.active {
+            background-color: #FF858D;
+            transform: translate(-2px, -2px);
+            box-shadow: 5px 5px 0px black;
+        }
+        .face-landmarks {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+        #faceCanvas {
+            width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4">
+    <div id="app" class="max-w-4xl mx-auto space-y-4 md:space-y-8">
+        <h1 class="text-3xl md:text-6xl text-center mb-4 md:mb-8">🔮 Astro Pulse</h1>
+
+        <!-- Tab Navigation -->
+        <div class="flex justify-center gap-4 mb-8">
+            <button @click="currentTab = 'palm'" 
+                    :class="['tab-button', { active: currentTab === 'palm' }]">
+                ✋ Palmistry
+                <span class="tooltip hidden group-hover:block absolute bg-black text-white p-2 rounded-md -mt-12">
+                    Analyze your palm lines to reveal insights about your life path, relationships, and destiny
+                </span>
+            </button>
+            <button @click="currentTab = 'face'" 
+                    :class="['tab-button', { active: currentTab === 'face' }]">
+                👤 Face Reading
+                <span class="tooltip hidden group-hover:block absolute bg-black text-white p-2 rounded-md -mt-12">
+                    Discover your personality traits and life potential through facial features analysis
+                </span>
+            </button>
+            <button @click="currentTab = 'horoscope'" 
+                    :class="['tab-button', { active: currentTab === 'horoscope' }]">
+                🌟 Horoscope
+                <span class="tooltip hidden group-hover:block absolute bg-black text-white p-2 rounded-md -mt-12">
+                    Coming soon - Get personalized astrological predictions based on your birth chart
+                </span>
+            </button>
+        </div>
+        
+        <div class="flex justify-center gap-4 mb-8">
+            <button @click="currentTab = 'runes'" 
+                    :class="['tab-button', { active: currentTab === 'runes' }]">
+                ⚡ Rune Reading
+                <span class="tooltip hidden group-hover:block absolute bg-black text-white p-2 rounded-md -mt-12">
+                    Get guidance through ancient Norse runes for spiritual insight
+                </span>
+            </button>
+            <button @click="currentTab = 'divine'" 
+                    :class="['tab-button', { active: currentTab === 'divine' }]">
+                🔢 Divine by Number
+                <span class="tooltip hidden group-hover:block absolute bg-black text-white p-2 rounded-md -mt-12">
+                    Unlock the mystical meanings behind numbers in your life
+                </span>
+            </button>
+                <button @click="currentTab = 'symbols'" 
+                        :class="['tab-button', { active: currentTab === 'symbols' }]">
+                        🎯 Symbol Divination
+                        <span class="tooltip hidden group-hover:block absolute bg-black text-white p-2 rounded-md -mt-12">
+                            Interpret spiritual symbols for guidance and insight
+                        </span>
+                </button>
+        </div>
+        
+        <div class="flex justify-center gap-4 mb-8">
+            <button @click="currentTab = 'cartomancy'" 
+                    :class="['tab-button', { active: currentTab === 'cartomancy' }]">
+                    🎴 Cartomancy
+                    <span class="tooltip hidden group-hover:block absolute bg-black text-white p-2 rounded-md -mt-12">
+                        Receive guidance through the ancient art of card reading
+                    </span>
+            </button>
+            <button @click="currentTab = 'tarot'" 
+                    :class="['tab-button', { active: currentTab === 'tarot' }]">
+                    🌙 Tarot Reading
+                    <span class="tooltip hidden group-hover:block absolute bg-black text-white p-2 rounded-md -mt-12">
+                        Coming soon - Get insights through traditional tarot card readings
+                    </span>
+            </button>
+            <button @click="currentTab = 'surprise'" 
+                    :class="['tab-button', { active: currentTab === 'surprise' }]">
+                    ✨ Surprise Me
+                    <span class="tooltip hidden group-hover:block absolute bg-black text-white p-2 rounded-md -mt-12">
+                        Coming soon - Let the universe choose your reading method
+                    </span>
+            </button>
+        </div>
+        
+        <div class="flex justify-center gap-4 mb-8">
+            <button @click="currentTab = 'soulsync'" 
+                    :class="['tab-button text-lg', { active: currentTab === 'soulsync' }]">
+                🌌 SoulSync
+                <span class="tooltip hidden group-hover:block absolute bg-black text-white p-2 rounded-md -mt-12">
+                    A deep mystical life prediction system that blends multiple occult sciences for layered insights
+                </span>
+            </button>
+        </div>
+
+        <!-- Palm Reading Section -->
+        <div v-if="currentTab === 'palm'" class="neubrutalism bg-[#FF858D] p-6 mb-8 rounded-lg">
+            <div class="text-center mb-4 space-y-3">
+                <label class="block mb-2 text-sm md:text-base">Upload your palm image:</label>
+                <input type="file" 
+                       @change="handleImageUpload" 
+                       accept="image/*" 
+                       class="hidden" 
+                       ref="fileInput">
+                <button @click="$refs.fileInput.click()" 
+                        class="neubrutalism bg-white px-4 py-2 md:px-6 md:py-3 rounded-lg text-sm md:text-base">
+                    📸 Select Image
+                </button>
+            </div>
+            
+            <div class="mb-4 flex gap-4 justify-center">
+                <label class="flex items-center">
+                    <input type="radio" v-model="gender" value="male" class="mr-2">
+                    Male (Right Hand)
+                </label>
+                <label class="flex items-center">
+                    <input type="radio" v-model="gender" value="female" class="mr-2">
+                    Female (Left Hand)
+                </label>
+            </div>
+
+            <div class="canvas-container" v-if="imageUrl">
+                <canvas id="imageCanvas" ref="canvas"></canvas>
+                <div class="flex justify-center mt-4">
+                    <button @click="analyzeImage" 
+                            class="neubrutalism bg-white px-4 py-2 md:px-6 md:py-3 rounded-lg text-sm md:text-base"
+                            :disabled="loading || !imageUrl">
+                        🔮 Analyze Palm
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Face Reading Section -->
+        <div v-if="currentTab === 'face'" class="neubrutalism bg-[#FF858D] p-6 mb-8 rounded-lg">
+            <div class="text-center mb-4 space-y-3">
+                <label class="block mb-2 text-sm md:text-base">Upload your selfie:</label>
+                <input type="file" 
+                       @change="handleFaceUpload" 
+                       accept="image/*" 
+                       class="hidden" 
+                       ref="faceInput">
+                <button @click="$refs.faceInput.click()" 
+                        class="neubrutalism bg-white px-4 py-2 md:px-6 md:py-3 rounded-lg text-sm md:text-base">
+                    📸 Select Selfie
+                </button>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-center mb-2">Additional Information (Optional)</label>
+                <div class="flex flex-wrap gap-4 justify-center">
+                    <input type="date" v-model="birthDate" 
+                           class="neubrutalism bg-white px-3 py-2 rounded-lg text-sm md:text-base w-full md:w-auto" 
+                           placeholder="Date of Birth">
+                    <input type="text" v-model="goals" 
+                           class="neubrutalism bg-white px-3 py-2 rounded-lg text-sm md:text-base w-full md:w-auto"
+                           placeholder="Your Goals">
+                </div>
+            </div>
+
+            <div class="canvas-container" v-if="faceImageUrl">
+                <canvas id="faceCanvas" ref="faceCanvas"></canvas>
+                <canvas class="face-landmarks" ref="landmarksCanvas"></canvas>
+                <div class="flex justify-center mt-4">
+                    <button @click="analyzeFace" 
+                            class="neubrutalism bg-white px-4 py-2 md:px-6 md:py-3 rounded-lg text-sm md:text-base"
+                            :disabled="loading || !faceImageUrl">
+                        👤 Analyze Face
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Runes Section -->
+        <div v-if="currentTab === 'runes'" class="neubrutalism bg-[#FF858D] p-6 mb-8 rounded-lg">
+            <div class="text-center mb-6 space-y-4">
+                <h2 class="text-xl md:text-2xl mb-2">Elder Futhark Rune Reading</h2>
+                <p class="mb-2 text-sm md:text-base">Focus on your question and draw 1-3 runes for guidance.</p>
+                <div class="flex flex-wrap gap-2 md:gap-4 justify-center mb-4">
+                    <button @click="drawRunes(1)" 
+                            class="neubrutalism bg-white px-4 py-2 md:px-6 md:py-3 rounded-lg text-sm md:text-base"
+                            :disabled="drawnRunes.length > 0">
+                        Draw 1 Rune
+                    </button>
+                    <button @click="drawRunes(2)" 
+                            class="neubrutalism bg-white px-4 py-2 md:px-6 md:py-3 rounded-lg text-sm md:text-base"
+                            :disabled="drawnRunes.length > 0">
+                        Draw 2 Runes
+                    </button>
+                    <button @click="drawRunes(3)" 
+                            class="neubrutalism bg-white px-4 py-2 md:px-6 md:py-3 rounded-lg text-sm md:text-base"
+                            :disabled="drawnRunes.length > 0">
+                        Draw 3 Runes
+                    </button>
+                </div>
+                <button v-if="drawnRunes.length > 0" 
+                        @click="resetRunes" 
+                        class="neubrutalism bg-white px-4 py-2 md:px-6 md:py-3 rounded-lg text-sm md:text-base">
+                    Draw Again
+                </button>
+            </div>
+
+            <div class="rune-container" v-if="drawnRunes.length > 0">
+                <div v-for="rune in drawnRunes" :key="rune.name" class="rune-card neubrutalism drawn">
+                    <div class="rune-symbol text-2xl md:text-3xl">{{ rune.symbol }}</div>
+                    <div class="rune-name text-sm md:text-base">{{ rune.name }}</div>
+                </div>
+            </div>
+
+            <div v-if="drawnRunes.length > 0" class="mt-6 text-center">
+                <button @click="interpretRunes" 
+                        class="neubrutalism bg-white px-6 py-3 rounded-lg"
+                        :disabled="loading">
+                    🔮 Interpret Runes
+                </button>
+            </div>
+        </div>
+
+        <!-- Divine by Number Section -->
+        <div v-if="currentTab === 'divine'" class="neubrutalism bg-[#FF858D] p-6 mb-8 rounded-lg">
+            <div class="text-center mb-6 space-y-4">
+                <h2 class="text-xl md:text-2xl mb-2">🔢 Divine by Number</h2>
+                <p class="mb-4 text-sm md:text-base">Silently ask your question, then pick 1-3 numbers that feel right to you.</p>
+                
+                <input type="text" 
+                       v-model="divinationQuestion" 
+                       class="neubrutalism bg-white px-3 py-2 rounded-lg text-sm md:text-base w-full max-w-md mx-auto"
+                       placeholder="Optional: Type your question here...">
+
+                <div class="number-grid max-w-md mx-auto">
+                    <div v-for="n in 9" 
+                         :key="n"
+                         @click="selectNumber(n)"
+                         :class="['number-cell neubrutalism cursor-pointer', 
+                                 { 'bg-[#90F1EF]': selectedNumbers.includes(n) }]">
+                        <span class="text-2xl">{{ n }}</span>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap gap-4 justify-center">
+                    <button @click="selectRandomNumber" 
+                            class="neubrutalism bg-white px-4 py-2 md:px-6 md:py-3 rounded-lg text-sm md:text-base"
+                            :disabled="selectedNumbers.length > 0">
+                        🎲 Surprise Me
+                    </button>
+
+                    <button @click="revealDivination" 
+                            class="neubrutalism bg-white px-4 py-2 md:px-6 md:py-3 rounded-lg text-sm md:text-base"
+                            :disabled="selectedNumbers.length === 0 || loading">
+                        🔮 Reveal Prediction
+                    </button>
+
+                    <button v-if="selectedNumbers.length > 0" 
+                            @click="resetDivination" 
+                            class="neubrutalism bg-white px-4 py-2 md:px-6 md:py-3 rounded-lg text-sm md:text-base">
+                        🔄 Try Again
+                    </button>
+                </div>
+
+                <div v-if="selectedNumbers.length > 0" class="text-center mt-4">
+                    <p class="text-lg">Selected numbers: {{ selectedNumbers.join(', ') }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Symbol Divination Section -->
+        <div v-if="currentTab === 'symbols'" class="neubrutalism bg-[#FF858D] p-6 mb-8 rounded-lg">
+            <div class="text-center mb-6 space-y-4">
+                <h2 class="text-xl md:text-2xl mb-2">🎯 Symbol Divination</h2>
+                <p class="mb-4 text-sm md:text-base">Select a symbol that resonates with your energy. Each symbol carries a unique spiritual message.</p>
+                
+                <input type="text" 
+                       v-model="symbolQuestion" 
+                       class="neubrutalism bg-white px-3 py-2 rounded-lg text-sm md:text-base w-full max-w-md mx-auto"
+                       placeholder="Optional: What's on your mind?">
+
+                <div class="symbol-grid max-w-4xl mx-auto">
+                    <div v-for="(symbol, index) in symbols" 
+                         :key="index"
+                         @click="selectSymbol(symbol)"
+                         :class="['symbol-card neubrutalism cursor-pointer', 
+                                 { 'bg-[#90F1EF]': selectedSymbol === symbol }]">
+                        <div class="text-3xl mb-2">{{ symbol.icon }}</div>
+                        <div class="text-sm">{{ symbol.name }}</div>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap gap-4 justify-center mt-6">
+                    <button @click="selectRandomSymbol" 
+                            class="neubrutalism bg-white px-4 py-2 md:px-6 md:py-3 rounded-lg text-sm md:text-base"
+                            :disabled="selectedSymbol">
+                        🎲 Random Symbol
+                    </button>
+
+                    <button @click="interpretSymbol" 
+                            class="neubrutalism bg-white px-4 py-2 md:px-6 md:py-3 rounded-lg text-sm md:text-base"
+                            :disabled="!selectedSymbol || loading">
+                        🔮 Interpret Symbol
+                    </button>
+
+                    <button v-if="selectedSymbol" 
+                            @click="resetSymbol" 
+                            class="neubrutalism bg-white px-4 py-2 md:px-6 md:py-3 rounded-lg text-sm md:text-base">
+                        🔄 Choose Again
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cartomancy Section -->
+        <div v-if="currentTab === 'cartomancy'" class="neubrutalism bg-[#FF858D] p-6 mb-8 rounded-lg">
+            <div class="text-center mb-6 space-y-4">
+                <h2 class="text-xl md:text-2xl mb-2">🃏 Cartomancy Reading</h2>
+                <p class="mb-4 text-sm md:text-base">Focus on your question and select how many cards you'd like to draw (1-3)</p>
+                
+                <input type="text" 
+                       v-model="cartomancyQuestion" 
+                       class="neubrutalism bg-white px-3 py-2 rounded-lg text-sm md:text-base w-full max-w-md mx-auto"
+                       placeholder="Optional: What's on your mind?">
+
+                <div class="flex flex-wrap gap-4 justify-center mb-4">
+                    <button @click="drawCards(1)" 
+                            class="neubrutalism bg-white px-4 py-2 md:px-6 md:py-3 rounded-lg text-sm md:text-base"
+                            :disabled="drawnCards.length > 0">
+                        Draw 1 Card
+                    </button>
+                    <button @click="drawCards(2)" 
+                            class="neubrutalism bg-white px-4 py-2 md:px-6 md:py-3 rounded-lg text-sm md:text-base"
+                            :disabled="drawnCards.length > 0">
+                        Draw 2 Cards
+                    </button>
+                    <button @click="drawCards(3)" 
+                            class="neubrutalism bg-white px-4 py-2 md:px-6 md:py-3 rounded-lg text-sm md:text-base"
+                            :disabled="drawnCards.length > 0">
+                        Draw 3 Cards
+                    </button>
+                </div>
+
+                <div class="flex flex-wrap justify-center gap-4" v-if="drawnCards.length > 0">
+                    <div v-for="card in drawnCards" :key="card.id" class="card neubrutalism drawn bg-white">
+                        <div class="card-inner h-full flex flex-col items-center justify-center">
+                            <div class="text-4xl mb-2">{{card.symbol}}</div>
+                            <div class="text-sm">{{card.name}}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6" v-if="drawnCards.length > 0">
+                    <button @click="interpretCards" 
+                            class="neubrutalism bg-white px-6 py-3 rounded-lg"
+                            :disabled="loading">
+                        🔮 Interpret Cards
+                    </button>
+                    <button @click="resetCards" 
+                            class="neubrutalism bg-white px-6 py-3 rounded-lg ml-4">
+                        🔄 Draw Again
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SoulSync Section -->
+        <div v-if="currentTab === 'soulsync'" class="neubrutalism bg-[#FF858D] p-6 mb-8 rounded-lg">
+            <div class="text-center mb-6 space-y-4">
+                <h2 class="text-xl md:text-2xl mb-2">🌌 SoulSync Prediction</h2>
+                <p class="mb-4 text-sm md:text-base">Get a deep, mystical prediction blending multiple occult sciences.</p>
+                
+                <!-- Life Area Selection -->
+                <div class="mb-6">
+                    <h3 class="text-lg mb-4">Choose Your Life Area:</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                        <button @click="soulSyncArea = 'love'" 
+                                :class="['neubrutalism bg-white p-4 rounded-lg', { 'bg-[#90F1EF]': soulSyncArea === 'love' }]">
+                            <span class="text-2xl">❤️</span>
+                            <div class="mt-2">Love Life</div>
+                        </button>
+                        <button @click="soulSyncArea = 'money'" 
+                                :class="['neubrutalism bg-white p-4 rounded-lg', { 'bg-[#90F1EF]': soulSyncArea === 'money' }]">
+                            <span class="text-2xl">💰</span>
+                            <div class="mt-2">Money & Wealth</div>
+                        </button>
+                        <button @click="soulSyncArea = 'career'" 
+                                :class="['neubrutalism bg-white p-4 rounded-lg', { 'bg-[#90F1EF]': soulSyncArea === 'career' }]">
+                            <span class="text-2xl">📈</span>
+                            <div class="mt-2">Career Growth</div>
+                        </button>
+                        <button @click="soulSyncArea = 'foreign'" 
+                                :class="['neubrutalism bg-white p-4 rounded-lg', { 'bg-[#90F1EF]': soulSyncArea === 'foreign' }]">
+                            <span class="text-2xl">🌍</span>
+                            <div class="mt-2">Foreign Visit</div>
+                        </button>
+                        <button @click="soulSyncArea = 'compatibility'" 
+                                :class="['neubrutalism bg-white p-4 rounded-lg', { 'bg-[#90F1EF]': soulSyncArea === 'compatibility' }]">
+                            <span class="text-2xl">🤝</span>
+                            <div class="mt-2">Compatibility</div>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- User Details Form -->
+                <div v-if="soulSyncArea" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input type="text" v-model="soulSyncData.name" 
+                               placeholder="Your Name"
+                               class="neubrutalism bg-white px-4 py-2 rounded-lg">
+                        <input type="number" v-model="soulSyncData.age" 
+                               placeholder="Your Age"
+                               class="neubrutalism bg-white px-4 py-2 rounded-lg">
+                        <select v-model="soulSyncData.gender"
+                                class="neubrutalism bg-white px-4 py-2 rounded-lg">
+                            <option value="">Select Gender</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="other">Other</option>
+                        </select>
+                        <input type="text" v-model="soulSyncData.question" 
+                               placeholder="Type your specific question (optional)"
+                               class="neubrutalism bg-white px-4 py-2 rounded-lg">
+                    </div>
+                    
+                    <!-- File Upload Buttons -->
+                    <div class="flex flex-wrap gap-4 justify-center mt-4">
+                        <button @click="$refs.soulSyncHandInput.click()" 
+                                class="neubrutalism bg-white px-4 py-2 rounded-lg text-sm md:text-base">
+                            ✋ Upload Hand Image
+                        </button>
+                        <button @click="$refs.soulSyncFaceInput.click()" 
+                                class="neubrutalism bg-white px-4 py-2 rounded-lg text-sm md:text-base">
+                            👤 Upload Face Image (Optional)
+                        </button>
+                    </div>
+                    
+                    <!-- Compatibility Section -->
+                    <div v-if="soulSyncArea === 'compatibility'" class="mt-6 space-y-4">
+                        <h3 class="text-lg">Other Person's Details</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <input type="text" v-model="soulSyncData.otherName" 
+                                   placeholder="Their Name"
+                                   class="neubrutalism bg-white px-4 py-2 rounded-lg">
+                            <input type="number" v-model="soulSyncData.otherAge" 
+                                   placeholder="Their Age"
+                                   class="neubrutalism bg-white px-4 py-2 rounded-lg">
+                            <select v-model="soulSyncData.otherGender"
+                                    class="neubrutalism bg-white px-4 py-2 rounded-lg">
+                                <option value="">Select Their Gender</option>
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                                <option value="other">Other</option>
+                            </select>
+                            <select v-model="soulSyncData.relationshipType"
+                                    class="neubrutalism bg-white px-4 py-2 rounded-lg">
+                                <option value="">Select Relationship Type</option>
+                                <option value="friend">Friend</option>
+                                <option value="love">Love Interest</option>
+                                <option value="business">Business</option>
+                            </select>
+                        </div>
+                        <div class="flex flex-wrap gap-4 justify-center mt-4">
+                            <button @click="$refs.otherHandInput.click()" 
+                                    class="neubrutalism bg-white px-4 py-2 rounded-lg text-sm md:text-base">
+                                ✋ Upload Their Hand Image
+                            </button>
+                            <button @click="$refs.otherFaceInput.click()" 
+                                    class="neubrutalism bg-white px-4 py-2 rounded-lg text-sm md:text-base">
+                                👤 Upload Their Face Image (Optional)
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <input type="file" ref="soulSyncHandInput" @change="handleSoulSyncHandUpload" accept="image/*" class="hidden">
+                    <input type="file" ref="soulSyncFaceInput" @change="handleSoulSyncFaceUpload" accept="image/*" class="hidden">
+                    <input type="file" ref="otherHandInput" @change="handleOtherHandUpload" accept="image/*" class="hidden">
+                    <input type="file" ref="otherFaceInput" @change="handleOtherFaceUpload" accept="image/*" class="hidden">
+                    
+                    <!-- Analyze Button -->
+                    <button @click="analyzeSoulSync" 
+                            class="neubrutalism bg-white px-6 py-3 rounded-lg mt-6"
+                            :disabled="loading || !soulSyncData.handImage || (soulSyncArea === 'compatibility' && !soulSyncData.otherHandImage)">
+                        🌌 Reveal SoulSync Prediction
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="loading" 
+             class="loading-overlay fixed inset-0 flex items-center justify-center text-white">
+            <div class="text-center">
+                <div class="text-4xl mb-4">🌟</div>
+                Reading your future...
+            </div>
+        </div>
+
+        <div v-if="reading" 
+             class="neubrutalism bg-[#90F1EF] p-6 rounded-lg">
+            <h2 class="text-xl md:text-2xl mb-4">Your Reading</h2>
+            <p class="whitespace-pre-line">{{ reading }}</p>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue
+
+        createApp({
+            data() {
+                return {
+                    imageUrl: null,
+                    cards: [
+                        // Hearts
+                        { id: 'H1', name: 'Ace of Hearts', symbol: '♥️', rank: 1, suit: 'hearts' },
+                        { id: 'H2', name: '2 of Hearts', symbol: '♥️', rank: 2, suit: 'hearts' },
+                        { id: 'H3', name: '3 of Hearts', symbol: '♥️', rank: 3, suit: 'hearts' },
+                        { id: 'H4', name: '4 of Hearts', symbol: '♥️', rank: 4, suit: 'hearts' },
+                        { id: 'H5', name: '5 of Hearts', symbol: '♥️', rank: 5, suit: 'hearts' },
+                        { id: 'H6', name: '6 of Hearts', symbol: '♥️', rank: 6, suit: 'hearts' },
+                        { id: 'H7', name: '7 of Hearts', symbol: '♥️', rank: 7, suit: 'hearts' },
+                        { id: 'H8', name: '8 of Hearts', symbol: '♥️', rank: 8, suit: 'hearts' },
+                        { id: 'H9', name: '9 of Hearts', symbol: '♥️', rank: 9, suit: 'hearts' },
+                        { id: 'H10', name: '10 of Hearts', symbol: '♥️', rank: 10, suit: 'hearts' },
+                        { id: 'HJ', name: 'Jack of Hearts', symbol: '♥️', rank: 11, suit: 'hearts' },
+                        { id: 'HQ', name: 'Queen of Hearts', symbol: '♥️', rank: 12, suit: 'hearts' },
+                        { id: 'HK', name: 'King of Hearts', symbol: '♥️', rank: 13, suit: 'hearts' },
+                        // Spades
+                        { id: 'S1', name: 'Ace of Spades', symbol: '♠️', rank: 1, suit: 'spades' },
+                        { id: 'S2', name: '2 of Spades', symbol: '♠️', rank: 2, suit: 'spades' },
+                        { id: 'S3', name: '3 of Spades', symbol: '♠️', rank: 3, suit: 'spades' },
+                        { id: 'S4', name: '4 of Spades', symbol: '♠️', rank: 4, suit: 'spades' },
+                        { id: 'S5', name: '5 of Spades', symbol: '♠️', rank: 5, suit: 'spades' },
+                        { id: 'S6', name: '6 of Spades', symbol: '♠️', rank: 6, suit: 'spades' },
+                        { id: 'S7', name: '7 of Spades', symbol: '♠️', rank: 7, suit: 'spades' },
+                        { id: 'S8', name: '8 of Spades', symbol: '♠️', rank: 8, suit: 'spades' },
+                        { id: 'S9', name: '9 of Spades', symbol: '♠️', rank: 9, suit: 'spades' },
+                        { id: 'S10', name: '10 of Spades', symbol: '♠️', rank: 10, suit: 'spades' },
+                        { id: 'SJ', name: 'Jack of Spades', symbol: '♠️', rank: 11, suit: 'spades' },
+                        { id: 'SQ', name: 'Queen of Spades', symbol: '♠️', rank: 12, suit: 'spades' },
+                        { id: 'SK', name: 'King of Spades', symbol: '♠️', rank: 13, suit: 'spades' },
+                        // Diamonds
+                        { id: 'D1', name: 'Ace of Diamonds', symbol: '♦️', rank: 1, suit: 'diamonds' },
+                        { id: 'D2', name: '2 of Diamonds', symbol: '♦️', rank: 2, suit: 'diamonds' },
+                        { id: 'D3', name: '3 of Diamonds', symbol: '♦️', rank: 3, suit: 'diamonds' },
+                        { id: 'D4', name: '4 of Diamonds', symbol: '♦️', rank: 4, suit: 'diamonds' },
+                        { id: 'D5', name: '5 of Diamonds', symbol: '♦️', rank: 5, suit: 'diamonds' },
+                        { id: 'D6', name: '6 of Diamonds', symbol: '♦️', rank: 6, suit: 'diamonds' },
+                        { id: 'D7', name: '7 of Diamonds', symbol: '♦️', rank: 7, suit: 'diamonds' },
+                        { id: 'D8', name: '8 of Diamonds', symbol: '♦️', rank: 8, suit: 'diamonds' },
+                        { id: 'D9', name: '9 of Diamonds', symbol: '♦️', rank: 9, suit: 'diamonds' },
+                        { id: 'D10', name: '10 of Diamonds', symbol: '♦️', rank: 10, suit: 'diamonds' },
+                        { id: 'DJ', name: 'Jack of Diamonds', symbol: '♦️', rank: 11, suit: 'diamonds' },
+                        { id: 'DQ', name: 'Queen of Diamonds', symbol: '♦️', rank: 12, suit: 'diamonds' },
+                        { id: 'DK', name: 'King of Diamonds', symbol: '♦️', rank: 13, suit: 'diamonds' },
+                        // Clubs
+                        { id: 'C1', name: 'Ace of Clubs', symbol: '♣️', rank: 1, suit: 'clubs' },
+                        { id: 'C2', name: '2 of Clubs', symbol: '♣️', rank: 2, suit: 'clubs' },
+                        { id: 'C3', name: '3 of Clubs', symbol: '♣️', rank: 3, suit: 'clubs' },
+                        { id: 'C4', name: '4 of Clubs', symbol: '♣️', rank: 4, suit: 'clubs' },
+                        { id: 'C5', name: '5 of Clubs', symbol: '♣️', rank: 5, suit: 'clubs' },
+                        { id: 'C6', name: '6 of Clubs', symbol: '♣️', rank: 6, suit: 'clubs' },
+                        { id: 'C7', name: '7 of Clubs', symbol: '♣️', rank: 7, suit: 'clubs' },
+                        { id: 'C8', name: '8 of Clubs', symbol: '♣️', rank: 8, suit: 'clubs' },
+                        { id: 'C9', name: '9 of Clubs', symbol: '♣️', rank: 9, suit: 'clubs' },
+                        { id: 'C10', name: '10 of Clubs', symbol: '♣️', rank: 10, suit: 'clubs' },
+                        { id: 'CJ', name: 'Jack of Clubs', symbol: '♣️', rank: 11, suit: 'clubs' },
+                        { id: 'CQ', name: 'Queen of Clubs', symbol: '♣️', rank: 12, suit: 'clubs' },
+                        { id: 'CK', name: 'King of Clubs', symbol: '♣️', rank: 13, suit: 'clubs' }
+                    ],
+                    drawnCards: [],
+                    cartomancyQuestion: '',
+                    faceImageUrl: null,
+                    gender: 'female',
+                    selectedSymbol: null,
+                    soulSyncArea: null,
+                    soulSyncData: {
+                        name: '',
+                        age: '',
+                        gender: '',
+                        question: '',
+                        otherName: '',
+                        otherAge: '',
+                        otherGender: '',
+                        relationshipType: '',
+                        handImage: null,
+                        faceImage: null,
+                        otherHandImage: null,
+                        otherFaceImage: null
+                    },
+                    symbolQuestion: '',
+                    symbols: [
+                        { name: 'Eye', icon: '👁️', meaning: 'Vision, Insight', category: 'growth' },
+                        { name: 'Snake', icon: '🐍', meaning: 'Transformation, Rebirth', category: 'growth' },
+                        { name: 'Tree', icon: '🌳', meaning: 'Growth, Stability', category: 'growth' },
+                        { name: 'Moon', icon: '🌙', meaning: 'Intuition, Cycles', category: 'growth' },
+                        { name: 'Sun', icon: '☀️', meaning: 'Vitality, Success', category: 'growth' },
+                        { name: 'Heart', icon: '❤️', meaning: 'Love, Emotion', category: 'love' },
+                        { name: 'Key', icon: '🔑', meaning: 'Opportunity, Access', category: 'growth' },
+                        { name: 'Star', icon: '⭐', meaning: 'Hope, Guidance', category: 'growth' },
+                        { name: 'Crystal', icon: '💎', meaning: 'Clarity, Value', category: 'growth' },
+                        { name: 'Butterfly', icon: '🦋', meaning: 'Change, Beauty', category: 'growth' },
+                        { name: 'Lotus', icon: '🪷', meaning: 'Enlightenment, Purity', category: 'growth' },
+                        { name: 'Crown', icon: '👑', meaning: 'Power, Leadership', category: 'money' },
+                        { name: 'Coin', icon: '🪙', meaning: 'Abundance, Wealth', category: 'money' },
+                        { name: 'Shield', icon: '🛡️', meaning: 'Protection, Defense', category: 'growth' },
+                        { name: 'Dove', icon: '🕊️', meaning: 'Peace, Spirit', category: 'growth' }
+                    ],
+                    selectedNumbers: [],
+                    divinationQuestion: '',
+                    currentTab: 'runes',
+                    birthDate: '',
+                    goals: '',
+                    loading: false,
+                    reading: null,
+                    drawnRunes: [],
+                    runes: [
+                        { name: 'Fehu', symbol: 'ᚠ', meaning: 'Wealth, cattle' },
+                        { name: 'Uruz', symbol: 'ᚢ', meaning: 'Strength, wild ox' },
+                        { name: 'Thurisaz', symbol: 'ᚦ', meaning: 'Thor, giant' },
+                        { name: 'Ansuz', symbol: 'ᚨ', meaning: 'God, mouth' },
+                        { name: 'Raidho', symbol: 'ᚱ', meaning: 'Ride, journey' },
+                        { name: 'Kenaz', symbol: 'ᚲ', meaning: 'Torch' },
+                        { name: 'Gebo', symbol: 'ᚷ', meaning: 'Gift' },
+                        { name: 'Wunjo', symbol: 'ᚹ', meaning: 'Joy' },
+                        { name: 'Hagalaz', symbol: 'ᚺ', meaning: 'Hail' },
+                        { name: 'Nauthiz', symbol: 'ᚾ', meaning: 'Need' },
+                        { name: 'Isa', symbol: 'ᛁ', meaning: 'Ice' },
+                        { name: 'Jera', symbol: 'ᛃ', meaning: 'Year, harvest' },
+                        { name: 'Eihwaz', symbol: 'ᛇ', meaning: 'Yew tree' },
+                        { name: 'Perthro', symbol: 'ᛈ', meaning: 'Fate, luck' },
+                        { name: 'Algiz', symbol: 'ᛉ', meaning: 'Protection' },
+                        { name: 'Sowilo', symbol: 'ᛊ', meaning: 'Sun' },
+                        { name: 'Tiwaz', symbol: 'ᛏ', meaning: 'Tyr, victory' },
+                        { name: 'Berkana', symbol: 'ᛒ', meaning: 'Birch' },
+                        { name: 'Ehwaz', symbol: 'ᛖ', meaning: 'Horse' },
+                        { name: 'Mannaz', symbol: 'ᛗ', meaning: 'Man, self' },
+                        { name: 'Laguz', symbol: 'ᛚ', meaning: 'Water' },
+                        { name: 'Ingwaz', symbol: 'ᛜ', meaning: 'Fertility' },
+                        { name: 'Dagaz', symbol: 'ᛞ', meaning: 'Day' },
+                        { name: 'Othala', symbol: 'ᛟ', meaning: 'Heritage' }
+                    ]
+                }
+            },
+            computed: {
+                divinationMessages() {
+                    return {
+                        '1': { message: "New beginnings are unfolding. Take that first step.", theme: "beginnings", element: "fire" },
+                        '2': { message: "Balance and harmony are key right now. Consider both sides.", theme: "duality", element: "water" },
+                        '3': { message: "Creative energy surrounds you. Express yourself freely.", theme: "creativity", element: "fire" },
+                        '4': { message: "Build strong foundations. Stability leads to success.", theme: "stability", element: "earth" },
+                        '5': { message: "Change is coming. Embrace the transformation.", theme: "change", element: "air" },
+                        '6': { message: "Love and harmony are highlighted. Nurture relationships.", theme: "love", element: "water" },
+                        '7': { message: "Spiritual insights await. Trust your inner wisdom.", theme: "spirituality", element: "air" },
+                        '8': { message: "Abundance and power are within reach. Stay focused.", theme: "power", element: "earth" },
+                        '9': { message: "A cycle is completing. Prepare for renewal.", theme: "completion", element: "fire" },
+                        '12': { message: "Partnership opportunities arise. Collaborate wisely.", theme: "partnership", element: "water" },
+                        '23': { message: "Your creative voice is gaining strength. Share it.", theme: "expression", element: "fire" },
+                        '34': { message: "Build on your achievements. Progress is steady.", theme: "progress", element: "earth" },
+                        '45': { message: "Transformation requires courage. Stay strong.", theme: "transformation", element: "air" },
+                        '56': { message: "Emotional healing brings new love opportunities.", theme: "healing", element: "water" },
+                        '67': { message: "Spiritual growth leads to deeper connections.", theme: "growth", element: "air" },
+                        '78': { message: "Your power is growing. Use it wisely.", theme: "empowerment", element: "earth" },
+                        '89': { message: "Completion brings new opportunities.", theme: "cycles", element: "fire" },
+                        '123': { message: "A journey of self-discovery awaits you.", theme: "journey", element: "air" },
+                        '456': { message: "Major life changes will bring unexpected joy.", theme: "change", element: "water" },
+                        '789': { message: "You're approaching a significant milestone.", theme: "achievement", element: "earth" }
+                    }
+                }
+            },
+            methods: {
+                drawCards(count) {
+                    this.drawnCards = [];
+                    const shuffled = [...this.cards].sort(() => Math.random() - 0.5);
+                    this.drawnCards = shuffled.slice(0, count);
+                },
+
+                resetCards() {
+                    this.drawnCards = [];
+                    this.cartomancyQuestion = '';
+                    this.reading = null;
+                },
+
+                async interpretCards() {
+                    this.loading = true;
+                    const cardDetails = this.drawnCards.map(card => `${card.name} (${card.suit})`).join(', ');
+                    const suitCounts = this.drawnCards.reduce((acc, card) => {
+                        acc[card.suit] = (acc[card.suit] || 0) + 1;
+                        return acc;
+                    }, {});
+
+                    let probabilities = [];
+                    for (let suit in suitCounts) {
+                        const percentage = (suitCounts[suit] / this.drawnCards.length) * 100;
+                        if (suit === 'hearts') {
+                            probabilities.push(`${percentage}% emotional influence`);
+                        } else if (suit === 'spades') {
+                            probabilities.push(`${percentage}% warning/challenge`);
+                        } else if (suit === 'diamonds') {
+                            probabilities.push(`${percentage}% financial/material influence`);
+                        }
+                    }
+
+                    try {
+                        const response = await fetch('https://r0c8kgwocscg8gsokogwwsw4.zetaverse.one/ai', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': 'Bearer 5lRZv1ya50V2SwTiBbKz9Es4FcW2',
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                messages: [
+                                    {
+                                        role: 'user',
+                                        content: [
+                                            {
+                                                type: 'text',
+                                                text: `Interpret this cartomancy spread: ${cardDetails}. Probabilities: ${probabilities.join(', ')}. ${this.cartomancyQuestion ? `Question asked: ${this.cartomancyQuestion}` : ''} Please provide a detailed interpretation of each card's meaning and how they interact together. Consider the suit meanings: Hearts = emotions/relationships, Spades = warnings/challenges, Diamonds = money/material concerns. Card rank adds intensity (Court cards = authority/people).`
+                                            }
+                                        ]
+                                    }
+                                ]
+                            })
+                        });
+
+                        const data = await response.json();
+                        this.reading = data.message;
+                    } catch (error) {
+                        console.error('Card interpretation failed:', error);
+                        this.reading = 'Sorry, there was an error interpreting the cards. Please try again.';
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                selectNumber(num) {
+                    if (this.selectedNumbers.includes(num)) {
+                        this.selectedNumbers = this.selectedNumbers.filter(n => n !== num)
+                    } else if (this.selectedNumbers.length < 3) {
+                        this.selectedNumbers.push(num)
+                    }
+                },
+
+                selectRandomNumber() {
+                    const num = Math.floor(Math.random() * 9) + 1
+                    this.selectNumber(num)
+                },
+
+                resetDivination() {
+                    this.selectedNumbers = []
+                    this.divinationQuestion = ''
+                    this.reading = null
+                },
+
+                async revealDivination() {
+                    this.loading = true
+                    const numberKey = this.selectedNumbers.sort().join('')
+                    const message = this.divinationMessages[numberKey] || this.divinationMessages[this.selectedNumbers[0].toString()]
+
+                    try {
+                        const response = await fetch('https://r0c8kgwocscg8gsokogwwsw4.zetaverse.one/ai', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': 'Bearer 5lRZv1ya50V2SwTiBbKz9Es4FcW2',
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                messages: [
+                                    {
+                                        role: 'user',
+                                        content: [
+                                            {
+                                                type: 'text',
+                                                text: `Based on numerology principles, interpret these numbers: ${this.selectedNumbers.join(', ')}. ${this.divinationQuestion ? `The question asked was: ${this.divinationQuestion}` : ''} Theme: ${message.theme}, Element: ${message.element}. Base message: ${message.message} Please elaborate on this and provide probability estimates for the prediction.`
+                                            }
+                                        ]
+                                    }
+                                ]
+                            })
+                        })
+
+                        const data = await response.json()
+                        this.reading = data.message
+                    } catch (error) {
+                        console.error('Divine by Number interpretation failed:', error)
+                        this.reading = 'Sorry, there was an error interpreting your numbers. Please try again.'
+                    } finally {
+                        this.loading = false
+                    }
+                },
+
+                drawRunes(count) {
+                    this.drawnRunes = [];
+                    const shuffled = [...this.runes].sort(() => Math.random() - 0.5);
+                    this.drawnRunes = shuffled.slice(0, count);
+                },
+
+                resetRunes() {
+                    this.drawnRunes = [];
+                    this.reading = null;
+                },
+
+                async interpretRunes() {
+                    this.loading = true;
+                    const runeNames = this.drawnRunes.map(r => r.name).join(', ');
+                    try {
+                        const response = await fetch('https://r0c8kgwocscg8gsokogwwsw4.zetaverse.one/ai', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': 'Bearer 5lRZv1ya50V2SwTiBbKz9Es4FcW2',
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                messages: [
+                                    {
+                                        role: 'user',
+                                        content: [
+                                            {
+                                                type: 'text',
+                                                text: `Interpret these runes for current life direction: ${runeNames}. Please include the symbolic meaning of each rune, how they interact with each other, and provide a probability estimate for the main prediction. Format the response with clear sections for each rune and the overall interpretation.`
+                                            }
+                                        ]
+                                    }
+                                ]
+                            })
+                        });
+
+                        const data = await response.json();
+                        this.reading = data.message;
+                    } catch (error) {
+                        console.error('Rune interpretation failed:', error);
+                        this.reading = 'Sorry, there was an error interpreting the runes. Please try again.';
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                    selectSymbol(symbol) {
+                        this.selectedSymbol = this.selectedSymbol === symbol ? null : symbol;
+                        this.reading = null;
+                    },
+
+                    selectRandomSymbol() {
+                        const randomIndex = Math.floor(Math.random() * this.symbols.length);
+                        this.selectSymbol(this.symbols[randomIndex]);
+                    },
+
+                    resetSymbol() {
+                        this.selectedSymbol = null;
+                        this.symbolQuestion = '';
+                        this.reading = null;
+                    },
+
+                    async interpretSymbol() {
+                        if (!this.selectedSymbol) return;
+                        
+                        this.loading = true;
+                        try {
+                            const response = await fetch('https://r0c8kgwocscg8gsokogwwsw4.zetaverse.one/ai', {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': 'Bearer 5lRZv1ya50V2SwTiBbKz9Es4FcW2',
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    messages: [
+                                        {
+                                            role: 'user',
+                                            content: [
+                                                {
+                                                    type: 'text',
+                                                    text: `Interpret this spiritual symbol: ${this.selectedSymbol.name} (${this.selectedSymbol.icon}). Meaning: ${this.selectedSymbol.meaning}. Category: ${this.selectedSymbol.category}. ${this.symbolQuestion ? `The querent asks: ${this.symbolQuestion}` : ''} Please provide a detailed spiritual interpretation including symbolism, energy resonance, and guidance. Include probability estimates where relevant, expressed through metaphors and imagery rather than strict percentages.`
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                })
+                            });
+
+                            const data = await response.json();
+                            this.reading = data.message;
+                        } catch (error) {
+                            console.error('Symbol interpretation failed:', error);
+                            this.reading = 'Sorry, there was an error interpreting the symbol. Please try again.';
+                        } finally {
+                            this.loading = false;
+                        }
+                    },
+
+                async handleImageUpload(event) {
+                    const file = event.target.files[0]
+                    if (!file) return
+
+                    // Upload to storage
+                    const formData = new FormData()
+                    formData.append('file', file)
+                    formData.append('userId', 'palm-reader-user')
+                    formData.append('appSlug', 'palm-reading-app')
+
+                    try {
+                        const response = await fetch('https://r0c8kgwocscg8gsokogwwsw4.zetaverse.one/storage/upload', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': 'Bearer 5lRZv1ya50V2SwTiBbKz9Es4FcW2'
+                            },
+                            body: formData
+                        })
+
+                        const data = await response.json()
+                        if (data.success) {
+                            this.imageUrl = data.url
+                            this.loadImage()
+                        }
+                    } catch (error) {
+                        console.error('Upload failed:', error)
+                    }
+                },
+
+                loadImage() {
+                    const img = new Image()
+                    img.onload = () => {
+                        const canvas = this.$refs.canvas
+                        canvas.width = img.width
+                        canvas.height = img.height
+                        const ctx = canvas.getContext('2d')
+                        ctx.drawImage(img, 0, 0)
+                    }
+                    img.src = this.imageUrl
+                },
+
+                async handleFaceUpload(event) {
+                    const file = event.target.files[0]
+                    if (!file) return
+
+                    const formData = new FormData()
+                    formData.append('file', file)
+                    formData.append('userId', 'face-reader-user')
+                    formData.append('appSlug', 'face-reading-app')
+
+                    try {
+                        const response = await fetch('https://r0c8kgwocscg8gsokogwwsw4.zetaverse.one/storage/upload', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': 'Bearer 5lRZv1ya50V2SwTiBbKz9Es4FcW2'
+                            },
+                            body: formData
+                        })
+
+                        const data = await response.json()
+                        if (data.success) {
+                            this.faceImageUrl = data.url
+                            this.loadFaceImage()
+                        }
+                    } catch (error) {
+                        console.error('Upload failed:', error)
+                    }
+                },
+
+                loadFaceImage() {
+                    const img = new Image()
+                    img.onload = () => {
+                        const canvas = this.$refs.faceCanvas
+                        canvas.width = img.width
+                        canvas.height = img.height
+                        const ctx = canvas.getContext('2d')
+                        ctx.drawImage(img, 0, 0)
+                    }
+                    img.src = this.faceImageUrl
+                },
+
+                async analyzeImage() {
+                    this.loading = true
+                    try {
+                        const response = await fetch('https://r0c8kgwocscg8gsokogwwsw4.zetaverse.one/ai', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': 'Bearer 5lRZv1ya50V2SwTiBbKz9Es4FcW2',
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                messages: [
+                                    {
+                                        role: 'user',
+                                        content: [
+                                            {
+                                                type: 'text',
+                                                text: `Give a palm reading based on visible lines and hand shape. This is a ${this.gender}'s ${this.gender === 'male' ? 'right' : 'left'} hand. Please analyze the heart line, head line, life line, fate line, and mounts. Provide insights about love, career, and life path. Include probability estimates for your predictions.`
+                                            },
+                                            {
+                                                type: 'image_url',
+                                                image_url: {
+                                                    url: this.imageUrl
+                                                }
+                                            }
+                                        ]
+                                    }
+                                ]
+                            })
+                        })
+
+                        const data = await response.json()
+                        this.reading = data.message
+                    } catch (error) {
+                        console.error('Analysis failed:', error)
+                        this.reading = 'Sorry, there was an error analyzing your palm. Please try again.'
+                    } finally {
+                        this.loading = false
+                    }
+                },
+
+                async analyzeFace() {
+                    this.loading = true
+                    try {
+                        const response = await fetch('https://r0c8kgwocscg8gsokogwwsw4.zetaverse.one/ai', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': 'Bearer 5lRZv1ya50V2SwTiBbKz9Es4FcW2',
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                messages: [
+                                    {
+                                        role: 'user',
+                                        content: [
+                                            {
+                                                type: 'text',
+                                                text: `Analyze this face for personality traits, career potential, and love life predictions. ${this.birthDate ? `Birth Date: ${this.birthDate}.` : ''} ${this.goals ? `Goals: ${this.goals}.` : ''} Please include probability estimates for predictions and analyze facial features including forehead, eyebrows, nose, lips, and chin. Consider face shape and provide detailed insights about personality traits and future events.`
+                                            },
+                                            {
+                                                type: 'image_url',
+                                                image_url: {
+                                                    url: this.faceImageUrl
+                                                }
+                                            }
+                                        ]
+                                    }
+                                ]
+                            })
+                        })
+
+                        const data = await response.json()
+                        this.reading = data.message
+                    } catch (error) {
+                        console.error('Analysis failed:', error)
+                        this.reading = 'Sorry, there was an error analyzing your face. Please try again.'
+                    } finally {
+                        this.loading = false
+                    }
+                },
+                
+                async handleSoulSyncHandUpload(event) {
+                    const file = event.target.files[0]
+                    if (!file) return
+
+                    const formData = new FormData()
+                    formData.append('file', file)
+                    formData.append('userId', 'soulsync-user')
+                    formData.append('appSlug', 'soulsync-app')
+
+                    try {
+                        const response = await fetch('https://r0c8kgwocscg8gsokogwwsw4.zetaverse.one/storage/upload', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': 'Bearer 5lRZv1ya50V2SwTiBbKz9Es4FcW2'
+                            },
+                            body: formData
+                        })
+
+                        const data = await response.json()
+                        if (data.success) {
+                            this.soulSyncData.handImage = data.url
+                        }
+                    } catch (error) {
+                        console.error('Upload failed:', error)
+                    }
+                },
+
+                async handleSoulSyncFaceUpload(event) {
+                    const file = event.target.files[0]
+                    if (!file) return
+
+                    const formData = new FormData()
+                    formData.append('file', file)
+                    formData.append('userId', 'soulsync-user')
+                    formData.append('appSlug', 'soulsync-app')
+
+                    try {
+                        const response = await fetch('https://r0c8kgwocscg8gsokogwwsw4.zetaverse.one/storage/upload', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': 'Bearer 5lRZv1ya50V2SwTiBbKz9Es4FcW2'
+                            },
+                            body: formData
+                        })
+
+                        const data = await response.json()
+                        if (data.success) {
+                            this.soulSyncData.faceImage = data.url
+                        }
+                    } catch (error) {
+                        console.error('Upload failed:', error)
+                    }
+                },
+
+                async handleOtherHandUpload(event) {
+                    const file = event.target.files[0]
+                    if (!file) return
+
+                    const formData = new FormData()
+                    formData.append('file', file)
+                    formData.append('userId', 'soulsync-user')
+                    formData.append('appSlug', 'soulsync-app')
+
+                    try {
+                        const response = await fetch('https://r0c8kgwocscg8gsokogwwsw4.zetaverse.one/storage/upload', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': 'Bearer 5lRZv1ya50V2SwTiBbKz9Es4FcW2'
+                            },
+                            body: formData
+                        })
+
+                        const data = await response.json()
+                        if (data.success) {
+                            this.soulSyncData.otherHandImage = data.url
+                        }
+                    } catch (error) {
+                        console.error('Upload failed:', error)
+                    }
+                },
+
+                async handleOtherFaceUpload(event) {
+                    const file = event.target.files[0]
+                    if (!file) return
+
+                    const formData = new FormData()
+                    formData.append('file', file)
+                    formData.append('userId', 'soulsync-user')
+                    formData.append('appSlug', 'soulsync-app')
+
+                    try {
+                        const response = await fetch('https://r0c8kgwocscg8gsokogwwsw4.zetaverse.one/storage/upload', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': 'Bearer 5lRZv1ya50V2SwTiBbKz9Es4FcW2'
+                            },
+                            body: formData
+                        })
+
+                        const data = await response.json()
+                        if (data.success) {
+                            this.soulSyncData.otherFaceImage = data.url
+                        }
+                    } catch (error) {
+                        console.error('Upload failed:', error)
+                    }
+                },
+
+                async analyzeSoulSync() {
+                    if (!this.soulSyncData.handImage) {
+                        alert('Please upload a hand image to continue')
+                        return
+                    }
+
+                    this.loading = true
+                    const predictions = []
+                    const occultSciences = [
+                        { name: 'Palmistry', confidence: 0.9 },
+                        { name: 'Face Reading', confidence: 0.85 },
+                        { name: 'Tarot', confidence: 0.8 },
+                        { name: 'Numerology', confidence: 0.75 },
+                        { name: 'Cartomancy', confidence: 0.7 },
+                        { name: 'Runes', confidence: 0.65 }
+                    ]
+
+                    try {
+                        // Build prediction request based on selected life area
+                        let prompt = `Analyze ${this.soulSyncArea} life area for ${this.soulSyncData.name} `
+                        if (this.soulSyncArea === 'compatibility' && this.soulSyncData.otherName) {
+                            prompt += `and their compatibility with ${this.soulSyncData.otherName}. `
+                            prompt += `Relationship type: ${this.soulSyncData.relationshipType}. `
+                        }
+                        
+                        // Get predictions from different occult sciences
+                        for (const science of occultSciences) {
+                            try {
+                                const response = await fetch('https://r0c8kgwocscg8gsokogwwsw4.zetaverse.one/ai', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Authorization': 'Bearer 5lRZv1ya50V2SwTiBbKz9Es4FcW2',
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({
+                                        messages: [{
+                                            role: 'user',
+                                            content: [{
+                                                type: 'text',
+                                                text: `${prompt} Focus on ${science.name} interpretation. `
+                                            }]
+                                        }]
+                                    })
+                                })
+
+                                const data = await response.json()
+                                predictions.push({
+                                    science: science.name,
+                                    prediction: data.message,
+                                    confidence: science.confidence
+                                })
+                            } catch (error) {
+                                console.error(`${science.name} prediction failed:`, error)
+                            }
+                        }
+
+                        // Generate final blended reading
+                        this.reading = predictions.map(p => 
+                            `${p.science} (${Math.round(p.confidence * 100)}% confidence):\n${p.prediction}\n`
+                        ).join('\n') + '\n\nFinal Verdict:\n' + this.generateVerdict(predictions)
+
+                    } catch (error) {
+                        console.error('SoulSync analysis failed:', error)
+                        this.reading = 'Sorry, there was an error processing your SoulSync reading. Please try again.'
+                    } finally {
+                        this.loading = false
+                    }
+                },
+
+                generateVerdict(predictions) {
+                    const totalConfidence = predictions.reduce((sum, p) => sum + p.confidence, 0)
+                    const weightedScore = predictions.reduce((sum, p) => {
+                        const prediction = p.prediction.toLowerCase()
+                        const score = (prediction.includes('yes') || prediction.includes('positive')) ? 1 :
+                                     (prediction.includes('no') || prediction.includes('negative')) ? -1 : 0
+                        return sum + (score * p.confidence)
+                    }, 0)
+
+                    const normalizedScore = weightedScore / totalConfidence
+                    const probability = Math.round((normalizedScore + 1) * 50)
+
+                    if (probability > 70) return `YES - ${probability}% probability of positive outcome`
+                    if (probability < 30) return `NO - ${100 - probability}% probability of negative outcome`
+                    return `POSSIBLE - ${probability}% probability of positive outcome`
+                }
+            }
+        }).mount('#app')
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
